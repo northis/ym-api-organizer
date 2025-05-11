@@ -1,259 +1,57 @@
-## Yandex Music API
+# Yandex-Music Organizer (fork)
 
-> Делаю то, что по определённым причинам не сделала компания Yandex.
+A lightweight CLI tool that keeps a local copy of your favourite Yandex Music
+playlist.  It is built on top of the excellent
+[`yandex-music-api`](https://github.com/MarshalX/yandex-music-api) library but
+works with an **API token** instead of browser cookies.  The script downloads
+only **new** tracks added to the playlist since the previous run, tags them and
+stores as `NNNN. Artist – Title.mp3` in the folder you choose.
 
-⚠️ Это неофициальная библиотека.
+> This repository is a fork of MarshalX/yandex-music-api and therefore contains
+> the original library sources.  The original upstream documentation can still
+> be found in [`README_ORIGINAL.md`](README_ORIGINAL.md).
 
-Сообщество разработчиков общаются и помогают друг другу в [Telegram чате](https://t.me/yandex_music_api), присоединяйтесь!
+## Features
 
-[![Поддерживаемые Python версии](https://img.shields.io/badge/python-3.8+-blue.svg)](https://pypi.org/project/yandex-music/)
-[![Покрытие кода тестами](https://codecov.io/gh/MarshalX/yandex-music-api/branch/main/graph/badge.svg)](https://codecov.io/gh/MarshalX/yandex-music-api)
-[![Качество кода](https://api.codacy.com/project/badge/Grade/27011a5a8d9f4b278d1bfe2fe8725fed)](https://app.codacy.com/gh/MarshalX/yandex-music-api)
-[![Статус тестов](https://github.com/MarshalX/yandex-music-api/actions/workflows/test.yml/badge.svg)](https://github.com/MarshalX/yandex-music-api/actions/workflows/test.yml)
-[![Статус документации](https://readthedocs.org/projects/yandex-music/badge/?version=latest)](https://yandex-music.readthedocs.io/en/latest/?badge=latest)
-[![Лицензия LGPLv3](https://img.shields.io/badge/license-LGPLv3-lightgrey.svg)](https://www.gnu.org/licenses/lgpl-3.0.html)
+* Pure-Python (3.8+) implementation – no external FFmpeg or youtube-dl needed.
+* Uses official MarshalX library objects (`Client`, `Track`, …) – any API change
+  is automatically picked up with future library updates.
+* Embeds full metadata: cover art, lyrics (if available) and a web link to the
+  track.
+* Respects a configurable per-run download limit (defaults to **20**).
+* Filenames are prefixed with a zero-padded sequential id so that new songs are
+  always ordered after the existing collection.
 
-### Содержание
-  - [Введение](#введение)
-    1.  [Доступ к вашим данным Яндекс.Музыка](#доступ-к-вашим-данным-яндексмузыка)
-  - [Установка](#установка)
-  - [Начало работы](#начало-работы)
-    1.  [Изучение по примерам](#изучение-по-примерам)
-    2.  [Особенности использования асинхронного клиента](#особенности-использования-асинхронного-клиента)
-    3.  [Логирование](#логирование)
-    4.  [Документация](#документация)
-  - [Получение помощи](#получение-помощи)
-  - [Список изменений](#список-изменений)
-  - [Реализации на других языках](#реализации-на-других-языках)
-  - [Внесение своего вклада в проект](#внесение-своего-вклада-в-проект)
-  - [Спонсоры](#спонсоры)
-  - [Лицензия](#лицензия)
+## Quick Start
 
-### Введение
+```bash
+pip install -r requirements-вум.txt  # installs mutagen & python-dotenv only
 
-Эта библиотека предоставляет Python интерфейс для никем незадокументированного и сделанного только для себя API Яндекс Музыки.
-
-Она совместима с версиями Python 3.8+ и поддерживает работу как с синхронным, так и с асинхронным (asyncio) кодом.
-
-В дополнение к реализации чистого API данная библиотека имеет ряд классов-обёрток — объектов высокого уровня, дабы сделать разработку клиентов и скриптов простой и понятной. Вся документация была написана с нуля исходя из логического анализа в ходе обратной разработки (reverse engineering) API.
-
-#### Доступ к вашим данным Яндекс.Музыка
-
-Задача по получению токена для доступа к данным лежит на плечах разработчиков, использующих данную библиотеку. О том как получить токен читайте в [документации](https://yandex-music.readthedocs.io/en/main/token.html).
-
-### Установка
-
-Вы можете установить или обновить Yandex Music API с помощью команды:
-
-``` shell
-pip install -U yandex-music
+cp .env.template .env            # then edit .env with your values
+python yandex_music_organizer_api.py
 ```
 
-Или вы можете установить из исходного кода с помощью команды:
+## Configuration (.env)
 
-``` shell
-git clone https://github.com/MarshalX/yandex-music-api
-cd yandex-music-api
-python setup.py install
-```
+| Variable      | Required | Description                                   |
+|---------------|----------|-----------------------------------------------|
+| `API_KEY`     | yes      | Yandex Music personal access token            |
+| `PLAYLIST_URL`| yes      | Full URL of the playlist to mirror            |
+| `TARGET_DIR`  | yes      | Directory where downloaded tracks are stored  |
+| `MAX_DOWNLOADS` | no     | Override hard cap of tracks per execution     |
 
-### Начало работы
+See `.env.template` shipped with the repo for an example.
 
-Приступив к работе, первым делом необходимо создать экземпляр клиента.
+## How it works
 
-Инициализация синхронного клиента:
+1. The script reads `.env` and initialises `yandex_music.Client` with your
+   token.
+2. It fetches the playlist, determines which tracks are *not* present locally
+   (based on artist-title match) and applies the per-run limit.
+3. Each new track is downloaded (highest-bit-rate MP3), tagged and renamed to
+   `NNNN. Artist – Title.mp3` where `NNNN` is the next id.
+4. That’s it.  Future invocations will pick up only the delta.
 
-``` python
-from yandex_music import Client
+## License
 
-client = Client()
-client.init()
-
-# или
-
-client = Client().init()
-```
-
-Инициализация асинхронного клиента:
-
-``` python
-from yandex_music import ClientAsync
-
-client = ClientAsync()
-await client.init()
-
-# или
-
-client = await Client().init()
-```
-
-Вызов `init()` необходим для получения информации — упрощения будущих запросов.
-
-Работа без авторизации ограничена. Так, например, для загрузки будут доступны только первые 30 секунд аудиофайла. Для понимания всех ограничений зайдите на сайт Яндекс.Музыка в режиме инкогнито и воспользуйтесь сервисом.
-
-Для доступа к личным данным следует авторизоваться. Это осуществляется через токен аккаунта Яндекс.Музыка.
-
-Авторизация:
-
-``` python
-from yandex_music import Client
-
-client = Client('token').init()
-```
-
-После успешного создания клиента вы вольны в выборе необходимого метода из API. Все они доступны у объекта класса `Client`. Подробнее в методах клиента в [документации](https://yandex-music.readthedocs.io/en/latest/yandex_music.client.html).
-
-Пример получения первого трека из плейлиста "Мне нравится" и его загрузки:
-
-``` python
-from yandex_music import Client
-
-client = Client('token').init()
-client.users_likes_tracks()[0].fetch_track().download('example.mp3')
-```
-
-В примере выше клиент получает список треков, которые были отмечены как понравившиеся. API возвращает объект [TracksList](https://yandex-music.readthedocs.io/en/latest/yandex_music.tracks_list.html), в котором содержится список с треками класса [TrackShort](https://yandex-music.readthedocs.io/en/latest/yandex_music.track_short.html). Данный класс содержит наиважнейшую информацию о треке и никаких подробностей, поэтому для получения полной версии трека со всей информацией необходимо обратиться к методу `fetch_track()`. Затем можно скачать трек методом `download()`.
-
-Пример получения треков по ID:
-
-``` python
-from yandex_music import Client
-
-client = Client().init()
-client.tracks(['10994777:1193829', '40133452:5206873', '48966383:6693286', '51385674:7163467'])
-```
-
-В качестве ID трека выступает его уникальный номер и номер альбома. Первым треком из примера является следующий трек:music.yandex.ru/album/**1193829**/track/**10994777**
-
-Выполнение запросов с использованием прокси в синхронной версии:
-
-``` python
-from yandex_music.utils.request import Request
-from yandex_music import Client
-
-request = Request(proxy_url='socks5://user:password@host:port')
-client = Client(request=request).init()
-```
-
-Примеры Proxy URL:
-  - socks5://user:<password@host>:port
-  - <http://host:port>
-  - <https://host:port>
-  - <http://user:password@host>
-
-Больше примеров тут: [proxies - advanced usage - requests](https://2.python-requests.org/en/master/user/advanced/#proxies)
-
-Выполнение запросов с использованием прокси в асинхронной версии:
-
-``` python
-from yandex_music.utils.request_async import Request
-from yandex_music import ClientAsync
-
-request = Request(proxy_url='http://user:pass@some.proxy.com')
-client = await ClientAsync(request=request).init()
-```
-
-Socks прокси не поддерживаются в асинхронной версии.
-
-Про поддерживаемые прокси тут: [proxy support - advanced usage - aiohttp](https://docs.aiohttp.org/en/stable/client_advanced.html#proxy-support)
-
-#### Изучение по примерам
-
-Вот несколько примеров для обзора. Даже если это не ваш подход к обучению, пожалуйста, возьмите и бегло просмотрите их.
-
-Код примеров опубликован в открытом доступе, поэтому вы можете взять его и начать писать вокруг него свой.
-
-Посетите [эту страницу](https://github.com/MarshalX/yandex-music-api/blob/main/examples/), чтобы изучить официальные примеры.
-
-#### Особенности использования асинхронного клиента
-
-При работе с асинхронной версией библиотеке стоит всегда помнить
-следующие особенности:
-  - Клиент следует импортировать с названием `ClientAsync`, а не просто `Client`.
-  - При использовании методов-сокращений нужно выбирать метод с суффиксом `_async`.
-
-Пояснение ко второму пункту:
-
-``` python
-from yandex_music import ClientAsync
-
-client = await ClientAsync('token').init()
-liked_short_track = (await client.users_likes_tracks())[0]
-
-# правильно
-full_track = await liked_short_track.fetch_track_async()
-await full_track.download_async()
-
-# НЕПРАВИЛЬНО
-full_track = await liked_short_track.fetch_track()
-await full_track.download()
-```
-
-#### Логирование
-
-Данная библиотека использует модуль `logging`. Чтобы настроить логирование на стандартный вывод, поместите в начало вашего скрипта следующий код:
-
-``` python
-import logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-```
-
-Вы также можете использовать логирование в вашем приложении, вызвав `logging.getLogger()` и установить уровень какой вы хотите:
-
-``` python
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-```
-
-Если вы хотите `DEBUG` логирование:
-
-``` python
-logger.setLevel(logging.DEBUG)
-```
-
-### Документация
-
-Документация `yandex-music-api` расположена на [readthedocs.io](https://yandex-music.readthedocs.io/). Вашей отправной точкой должен быть класс `Client`, а точнее его методы. Именно они выполняют все запросы на API и возвращают вам готовые объекты. [Класс Client на readthedocs.io](https://yandex-music.readthedocs.io/en/latest/yandex_music.client.html).
-
-### Получение помощи
-
-Получить помощь можно несколькими путями:
-  - Задать вопрос в [Telegram чате](https://t.me/yandex_music_api), где мы помогаем друг другу, присоединяйтесь\!
-  - Сообщить о баге можно [создав Bug Report](https://github.com/MarshalX/yandex-music-api/issues/new?assignees=MarshalX&labels=bug&template=bug-report.md&title=).
-  - Предложить новую фичу или задать вопрос можно [создав discussion](https://github.com/MarshalX/yandex-music-api/discussions/new).
-  - Найти ответ на вопрос в [документации библиотеки](https://yandex-music.readthedocs.io/en/latest/).
-
-### Список изменений
-
-Весь список изменений ведётся в файле [CHANGES.md](https://github.com/MarshalX/yandex-music-api/blob/main/CHANGES.md).
-
-### Реализации на других языках
-
-- [OpenAPI спецификация](https://github.com/acherkashin/yandex-music-open-api/blob/main/src/yandex-music.yaml)
-- [C#](https://github.com/K1llMan/Yandex.Music.Api)
-- [PHP](https://github.com/LuckyWins/yandex-music-api)
-- [TS](https://github.com/acherkashin/yandex-music-open-api)
-- [JS](https://github.com/kontsevoye/ym-api)
-
-### Внесение своего вклада в проект
-
-Внесение своего вклада максимально приветствуется! Есть перечень пунктов, который стоит соблюдать. Каждый пункт перечня расписан в [CONTRIBUTING.md](https://github.com/MarshalX/yandex-music-api/blob/main/CONTRIBUTING.md).
-
-Вы можете помочь и сообщив о [баге](https://github.com/MarshalX/yandex-music-api/issues/new?assignees=MarshalX&labels=bug&template=bug-report.md&title=) или о [новом поле пришедшем от API](https://github.com/MarshalX/yandex-music-api/issues/new?assignees=&labels=feature&template=found-unknown-fields.md&title=%D0%9D%D0%BE%D0%B2%D0%BE%D0%B5+%D0%BD%D0%B5%D0%B8%D0%B7%D0%B2%D0%B5%D1%81%D1%82%D0%BD%D0%BE%D0%B5+%D0%BF%D0%BE%D0%BB%D0%B5+%D0%BE%D1%82+API).
-
-### Спонсоры
-
-#### JetBrains
-
-<img height="150" width="150" src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains Logo (Main) logo.">
-
-> JetBrains предоставляет бесплатный набор инструментов для разработки активным контрибьюторам некоммерческих проектов с открытым исходным кодом.
-
-[Лицензии для проектов с открытым исходным кодом — Программы поддержки](https://jb.gg/OpenSourceSupport)
-
-### Лицензия
-
-Вы можете копировать, распространять и модифицировать программное обеспечение при условии, что модификации описаны и лицензированы бесплатно в соответствии с [LGPL-3](https://www.gnu.org/licenses/lgpl-3.0.html). Произведения производных (включая модификации или что-либо статически связанное с библиотекой) могут распространяться только в соответствии с LGPL-3, но приложения, которые используют библиотеку, необязательно.
+This fork inherits the original LGPL-3.0 license of yandex-music-api.
