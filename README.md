@@ -25,7 +25,7 @@ stores as `NNNN. Artist – Title.mp3` in the folder you choose.
 ## Quick Start
 
 ```bash
-pip install -r requirements-вум.txt  # installs mutagen & python-dotenv only
+pip install -r requirements-dev.txt  # installs mutagen & python-dotenv only
 
 cp .env.template .env            # then edit .env with your values
 python yandex_music_organizer_api.py

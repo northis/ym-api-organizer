@@ -12,3 +12,4 @@ codecov
 ujson
 importlib_metadata
 atomicwrites
+mutagen
