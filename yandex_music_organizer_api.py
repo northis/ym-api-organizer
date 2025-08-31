@@ -134,7 +134,7 @@ def get_highest_local_id(target_dir: Path) -> int:
 def build_track_identifier(track: Track) -> str:
     """Create unique key '<artist>-<title>' in lower case for comparison."""
     artist = track.artists[0].name if track.artists else ""
-    return f"{artist}-{track.title}".lower()
+    return sanitize_component(f"{artist}-{track.title}".lower())
 
 
 def choose_best_download_info(infos: List[DownloadInfo]) -> DownloadInfo:
